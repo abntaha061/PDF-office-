@@ -44,6 +44,8 @@ fun SpreadsheetScreen(
     var showTitleEditDialog by remember { mutableStateOf(false) }
     var tempTitle by remember { mutableStateOf("") }
 
+    var showAiDialog by remember { mutableStateOf(false) }
+
     // DYNAMIC SHEET PROPERTIES
     var selectedExtension by remember { mutableStateOf(".xlsx") }
     var isRowFrozen by remember { mutableStateOf(false) }
@@ -290,6 +292,23 @@ fun SpreadsheetScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAiDialog = true },
+                containerColor = Color(0xFF8E2DE2),
+                contentColor = Color.White,
+                modifier = Modifier.testTag("wps_ai_fab")
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = "WPS AI", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("WPS AI", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
         }
     ) { innerPadding ->
         Column(
@@ -1104,6 +1123,20 @@ fun SpreadsheetScreen(
                 TextButton(onClick = { showTitleEditDialog = false }) {
                     Text("إلغاء")
                 }
+            }
+        )
+    }
+
+    if (showAiDialog) {
+        WpsAiAssistantDialog(
+            viewModel = viewModel,
+            screenType = "spreadsheet",
+            onDismissRequest = { showAiDialog = false },
+            onInsertText = { generatedText ->
+                viewModel.updateSheetCellInput(generatedText)
+            },
+            onInsertImage = { base64 ->
+                viewModel.updateSheetCellInput("[صورة مدمجة ذكائياً: AI Generated]")
             }
         )
     }

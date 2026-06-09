@@ -199,6 +199,8 @@ fun PdfScreen(
     var tempTitle by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
 
+    var showAiDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -288,6 +290,23 @@ fun PdfScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAiDialog = true },
+                containerColor = Color(0xFF8E2DE2),
+                contentColor = Color.White,
+                modifier = Modifier.testTag("wps_ai_fab")
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = "WPS AI", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("WPS AI", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
         }
     ) { innerPadding ->
         Column(
@@ -1414,6 +1433,14 @@ fun PdfScreen(
                     Text("إلغاء")
                 }
             }
+        )
+    }
+
+    if (showAiDialog) {
+        WpsAiAssistantDialog(
+            viewModel = viewModel,
+            screenType = "pdf",
+            onDismissRequest = { showAiDialog = false }
         )
     }
 }

@@ -58,6 +58,8 @@ fun PresentationScreen(
     var showTitleEditDialog by remember { mutableStateOf(false) }
     var tempTitle by remember { mutableStateOf("") }
 
+    var showAiDialog by remember { mutableStateOf(false) }
+
     val activeSlide = slides.getOrNull(selectedIndex) ?: ("الشريحة" to "")
 
     var slideTitleInput by remember { mutableStateOf("") }
@@ -585,6 +587,23 @@ fun PresentationScreen(
                         containerColor = MaterialTheme.colorScheme.surface
                     )
                 )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showAiDialog = true },
+                    containerColor = Color(0xFF8E2DE2),
+                    contentColor = Color.White,
+                    modifier = Modifier.testTag("wps_ai_fab")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = "WPS AI", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("WPS AI", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
             }
         ) { innerPadding ->
             Column(
@@ -1047,6 +1066,23 @@ fun PresentationScreen(
                 TextButton(onClick = { showTitleEditDialog = false }) {
                     Text("إلغاء")
                 }
+            }
+        )
+    }
+
+    if (showAiDialog) {
+        WpsAiAssistantDialog(
+            viewModel = viewModel,
+            screenType = "presentation",
+            onDismissRequest = { showAiDialog = false },
+            onInsertText = { generatedText ->
+                val lines = generatedText.split("\n").filter { it.isNotBlank() }
+                val slideTitle = lines.firstOrNull()?.replace("-", "")?.replace("#", "")?.trim() ?: "شريحة ذكاء اصطناعي"
+                val slideContent = lines.drop(1).joinToString("\n").trim().ifEmpty { generatedText }
+                viewModel.addCustomSlide(slideTitle, slideContent)
+            },
+            onInsertImage = { base64 ->
+                viewModel.addCustomSlide("شريحة فنية (AI Art)", "تم توليد وإدراج المحتوى التوضيحي بالكامل بالذكاء الاصطناعي.")
             }
         )
     }

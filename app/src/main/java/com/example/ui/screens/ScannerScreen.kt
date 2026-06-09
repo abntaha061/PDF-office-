@@ -496,7 +496,6 @@ fun ScannerScreen(
                                                 val activity = context.findActivity()
                                                 if (activity != null) {
                                                     val options = GmsDocumentScannerOptions.Builder()
-                                                        .setGalleryAllowed(true)
                                                         .setResultFormats(RESULT_FORMAT_JPEG, RESULT_FORMAT_PDF)
                                                         .setScannerMode(SCANNER_MODE_FULL)
                                                         .build()

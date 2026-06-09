@@ -126,6 +126,19 @@ class OfficeViewModel(private val repository: DocumentRepository) : ViewModel() 
     private val _scannerFlash = MutableStateFlow(false)
     val scannerFlash = _scannerFlash.asStateFlow()
 
+    // --- WPS AI STATE ---
+    private val _isAiLoading = MutableStateFlow(false)
+    val isAiLoading = _isAiLoading.asStateFlow()
+
+    private val _aiResponse = MutableStateFlow<String?>(null)
+    val aiResponse = _aiResponse.asStateFlow()
+
+    private val _pdfChatHistory = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val pdfChatHistory = _pdfChatHistory.asStateFlow()
+
+    private val _generatedImageBase64 = MutableStateFlow<String?>(null)
+    val generatedImageBase64 = _generatedImageBase64.asStateFlow()
+
     // --- ACTIONS ---
 
     fun setCurrentTab(tab: String) {
@@ -415,6 +428,13 @@ class OfficeViewModel(private val repository: DocumentRepository) : ViewModel() 
         _presentationSelectedSlideIndex.value = currentSlides.size - 1
     }
 
+    fun addCustomSlide(title: String, content: String) {
+        val currentSlides = _presentationSlides.value.toMutableList()
+        currentSlides.add(title to content)
+        _presentationSlides.value = currentSlides
+        _presentationSelectedSlideIndex.value = currentSlides.size - 1
+    }
+
     fun deleteSelectedSlide() {
         val currentSlides = _presentationSlides.value.toMutableList()
         val index = _presentationSelectedSlideIndex.value
@@ -575,6 +595,140 @@ class OfficeViewModel(private val repository: DocumentRepository) : ViewModel() 
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    // --- WPS AI MUTATORS & API CONTROLLERS ---
+
+    fun summarizeDocument(documentContent: String, length: String = "متوسط") {
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = null
+            val systemPrompt = "أنت مساعد ذكي مدمج بـ WPS AI. مهمتك هي تلخيص المستند المكتوب باللغتين العربية أو الإنجليزية بدقة بالغة. ركز على النقاط الأساسية واجعل التلخيص بطول: $length."
+            val prompt = "قم بتلخيص المحتوى التالي تلخيصاً هيكلياً جذاباً ومنظماً:\n\n$documentContent"
+            val response = com.example.data.network.GeminiRetrofitClient.generateWithModel(prompt, systemPrompt = systemPrompt)
+            _aiResponse.value = response
+            _isAiLoading.value = false
+        }
+    }
+
+    fun queryPdfContent(documentContent: String, question: String) {
+        if (question.isBlank()) return
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            val currentChat = _pdfChatHistory.value.toMutableList()
+            currentChat.add("user" to question)
+            _pdfChatHistory.value = currentChat
+
+            val systemPrompt = "أنت مساعد ذكي WPS AI لقراءة ملفات PDF والدردشة معها. استخدم محتوى ملف PDF التالي للإجابة على سؤال المستخدم بدقة متناهية وبالعربية الفصحى وبشكل مباشر دون افتراض معلومات غير موجودة بالمستند.\n\nمستند PDF:\n$documentContent"
+            val conversationContext = currentChat.takeLast(10).joinToString("\n") { "${if (it.first == "user") "مستند" else "مساعد"}: ${it.second}" }
+            val prompt = "$conversationContext\nمستند: أجب على السؤال الأخير بناءً على المستند."
+            val response = com.example.data.network.GeminiRetrofitClient.generateWithModel(prompt, systemPrompt = systemPrompt)
+            
+            val updatedChat = _pdfChatHistory.value.toMutableList()
+            updatedChat.add("model" to response)
+            _pdfChatHistory.value = updatedChat
+            _isAiLoading.value = false
+        }
+    }
+
+    fun generateContentForWriter(topic: String, purpose: String) {
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = null
+            val systemPrompt = "أنت مساعد الكتابة الإبداعي WPS AI. ساعد في توليد نصوص بالغة الدقة والجمال اللغوي، متوافقة مع الغرض المطلوب."
+            val prompt = "اكتب مسودة نصية متكاملة بأسلوب احترافي حول موضوع: '$topic'، مع مراعاة أن الغرض هو '$purpose'. اجعل النص منسقاً بعناوين واضحة وفقرات جميلة."
+            val response = com.example.data.network.GeminiRetrofitClient.generateWithModel(prompt, systemPrompt = systemPrompt)
+            _aiResponse.value = response
+            _isAiLoading.value = false
+        }
+    }
+
+    fun improvePhrasing(originalText: String) {
+        if (originalText.isBlank()) return
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = null
+            val systemPrompt = "أنت مصحح ومدقق لغوي خبير مدمج بـ WPS AI. مهمتك تحسين صياغة النصوص والفقرات لجعلها تتدفق بسلاسة وجمال."
+            val prompt = "قم بإعادة صياغة النص التالي بأسلوب بليغ وممتاز، وحسن اختيار الكلمات وبناء الجمل مع الحفاظ على المعنى الأصلي:\n\n$originalText"
+            val response = com.example.data.network.GeminiRetrofitClient.generateWithModel(prompt, systemPrompt = systemPrompt)
+            _aiResponse.value = response
+            _isAiLoading.value = false
+        }
+    }
+
+    fun generatePresentationSlides(topic: String, slideCount: Int = 4) {
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = null
+            val systemPrompt = "أنت خبير تصميم العروض التقديمية WPS AI. وظيفتك هي إنشاء هيكل ومحتوى شرائح لموضوع معين."
+            val prompt = """
+                قم بإنشاء محتوى لـ $slideCount شرائح حول موضوع: '$topic'.
+                يجب أن تكون المخرجات بتنسيق منظم يسهل تحويله إلى شرائح، لكل شريحة اكتب:
+                - عنوان الشريحة
+                - النص التفصيلي أو النقاط الأساسية للشريحة
+                
+                اكتب المحتوى بأسلوب راقٍ وموجز ومناسب للعرض التقديمي.
+            """.trimIndent()
+            val response = com.example.data.network.GeminiRetrofitClient.generateWithModel(prompt, systemPrompt = systemPrompt)
+            _aiResponse.value = response
+            _isAiLoading.value = false
+        }
+    }
+
+    fun analyzeSpreadData(cellData: String) {
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = null
+            val systemPrompt = "أنت محلل البيانات الذكي WPS AI الخاص بالجداول الحسابية (Spreadsheets). لديك مهارات فائقة في تفسير الأرقام واكتشاف الأنماط واقتراح الرسوم البيانية."
+            val prompt = """
+                بناءً على بيانات الخلايا التالية (المكتوبة بصيغة العنوان:::القيمة ومفصولة بـ |||)، قم بتحليلها بالكامل:
+                $cellData
+                
+                قدم ما يلي:
+                1. ملخص سريع للبيانات ومجموعها الإجمالي أو المتوسط تبعا للمحتوى.
+                2. اقتراح لنوع الرسم البياني المناسب لتمثيلها (مثال: شريطي، دائري، خطي) مع تبرير الاختيار.
+                3. أي اتجاهات، أو أنماط، أو شذوذ تكتشفه في هذه الأرقام مع نصائح عملية ذكية.
+            """.trimIndent()
+            val response = com.example.data.network.GeminiRetrofitClient.generateWithModel(prompt, systemPrompt = systemPrompt)
+            _aiResponse.value = response
+            _isAiLoading.value = false
+        }
+    }
+
+    fun translateDocument(originalText: String, targetLanguage: String) {
+        if (originalText.isBlank()) return
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _aiResponse.value = null
+            val systemPrompt = "أنت خبير الترجمة الفورية WPS AI. مهمتك ترجمة النص إلى اللغة المطلوبة مع الحفاظ على التنسيق والفقرات وسياق الكلام الأصلي."
+            val prompt = "ترجم النص التالي بدقة واحترافية إلى اللغة: ($targetLanguage). حافظ على البنية والفقرات:\n\n$originalText"
+            val response = com.example.data.network.GeminiRetrofitClient.generateWithModel(prompt, systemPrompt = systemPrompt)
+            _aiResponse.value = response
+            _isAiLoading.value = false
+        }
+    }
+
+    fun triggerImageGeneration(prompt: String) {
+        if (prompt.isBlank()) return
+        viewModelScope.launch {
+            _isAiLoading.value = true
+            _generatedImageBase64.value = null
+            val base64 = com.example.data.network.GeminiRetrofitClient.generateImage(prompt)
+            _generatedImageBase64.value = base64
+            _isAiLoading.value = false
+        }
+    }
+
+    fun clearPdfChat() {
+        _pdfChatHistory.value = emptyList()
+    }
+
+    fun clearGeneratedImage() {
+        _generatedImageBase64.value = null
+    }
+
+    fun clearAiResponse() {
+        _aiResponse.value = null
     }
 }
 

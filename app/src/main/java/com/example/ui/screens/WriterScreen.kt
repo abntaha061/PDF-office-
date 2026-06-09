@@ -48,6 +48,8 @@ fun WriterScreen(
     val title by viewModel.writerTitle.collectAsState()
     val text by viewModel.writerText.collectAsState()
     val textSize by viewModel.writerTextSize.collectAsState()
+
+    var showAiDialog by remember { mutableStateOf(false) }
     val isBold by viewModel.writerIsBold.collectAsState()
     val isItalic by viewModel.writerIsItalic.collectAsState()
     val isUnderline by viewModel.writerIsUnderline.collectAsState()
@@ -233,6 +235,23 @@ fun WriterScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAiDialog = true },
+                containerColor = Color(0xFF8E2DE2),
+                contentColor = Color.White,
+                modifier = Modifier.testTag("wps_ai_fab")
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = "WPS AI", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("WPS AI", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
         }
     ) { innerPadding ->
         Column(
@@ -1195,6 +1214,20 @@ fun WriterScreen(
                 TextButton(onClick = { showTitleEditDialog = false }) {
                     Text("إلغاء")
                 }
+            }
+        )
+    }
+
+    if (showAiDialog) {
+        WpsAiAssistantDialog(
+            viewModel = viewModel,
+            screenType = "writer",
+            onDismissRequest = { showAiDialog = false },
+            onInsertText = { generatedText ->
+                viewModel.updateWriterText(text + "\n\n" + generatedText)
+            },
+            onInsertImage = { base64 ->
+                viewModel.updateWriterText(text + "\n\n[رسوم فنية مدمجة ذكائياً: AI Generated Image]\n")
             }
         )
     }
