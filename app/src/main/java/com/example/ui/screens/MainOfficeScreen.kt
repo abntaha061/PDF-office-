@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.OfficeViewModel
 
@@ -36,6 +38,15 @@ fun MainOfficeScreen(
 ) {
     val currentTab by viewModel.currentTab.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.importDocumentFromUri(context, it)
+        }
+    }
 
     // FORCE FULL RTL (Arabic Layout alignment direction from right to left)
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -218,6 +229,19 @@ fun MainOfficeScreen(
                                 showCreateDialog = false
                             },
                             tag = "create_scanner_option"
+                        )
+
+                        // 6. Real File Importer
+                        CreateItemRow(
+                            title = "فتح ملف حقيقي من الهاتف",
+                            description = "استيراد وقراءة ملفاتك الحقيقية (PDF, TXT, CSV, JSON)",
+                            icon = Icons.Default.FolderOpen,
+                            color = MaterialTheme.colorScheme.primary,
+                            onClick = {
+                                filePickerLauncher.launch("*/*")
+                                showCreateDialog = false
+                            },
+                            tag = "import_real_file_option"
                         )
                     }
                 },
