@@ -1,0 +1,6 @@
+{
+  "name": "المكتب الذكي",
+  "description": "تطبيق مكتبي متكامل يضم محرر نصوص، جداول بيانات، عروض تقديمية، عارض PDF، ماسح ضوئي، وإدارة ملفات، يدعم العربية بالكامل.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
