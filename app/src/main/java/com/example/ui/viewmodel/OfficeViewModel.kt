@@ -139,6 +139,21 @@ class OfficeViewModel(private val repository: DocumentRepository) : ViewModel() 
     private val _generatedImageBase64 = MutableStateFlow<String?>(null)
     val generatedImageBase64 = _generatedImageBase64.asStateFlow()
 
+    // --- PREMIUM & PREFERENCES ---
+    private val _isPremiumUser = MutableStateFlow(false)
+    val isPremiumUser = _isPremiumUser.asStateFlow()
+
+    private val _appDefaultFont = MutableStateFlow(14)
+    val appDefaultFont = _appDefaultFont.asStateFlow()
+
+    fun togglePremiumUser() {
+        _isPremiumUser.value = !_isPremiumUser.value
+    }
+
+    fun setAppDefaultFont(size: Int) {
+        _appDefaultFont.value = size
+    }
+
     // --- ACTIONS ---
 
     fun setCurrentTab(tab: String) {

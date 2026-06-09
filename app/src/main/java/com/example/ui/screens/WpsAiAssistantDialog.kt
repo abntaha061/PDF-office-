@@ -49,6 +49,7 @@ fun WpsAiAssistantDialog(
     val aiResponse by viewModel.aiResponse.collectAsState()
     val pdfChatHistory by viewModel.pdfChatHistory.collectAsState()
     val generatedImageBase64 by viewModel.generatedImageBase64.collectAsState()
+    val isPremiumUser by viewModel.isPremiumUser.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
@@ -127,6 +128,26 @@ fun WpsAiAssistantDialog(
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
+                        if (isPremiumUser) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(Color(0xFFF1C40F), Color(0xFFE67E22))
+                                        ),
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "VIP ✨",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Black
+                                )
+                            }
+                        }
                     }
 
                     IconButton(onClick = onDismissRequest) {
@@ -135,6 +156,54 @@ fun WpsAiAssistantDialog(
                 }
 
                 Divider(color = Color.White.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 12.dp))
+
+                // Premium Promotion / Active Banner
+                if (!isPremiumUser) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFE67E22).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .border(BorderStroke(1.dp, Color(0xFFE67E22).copy(alpha = 0.3f)), RoundedCornerShape(8.dp))
+                            .clickable { viewModel.togglePremiumUser() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Stars, contentDescription = null, tint = Color(0xFFF1C40F), modifier = Modifier.size(14.dp))
+                            Text(
+                                text = "أنت في الوضع التجريبي المحدود. انقر للترقية الفورية وتفعيل الحساب الذهبي (Premium) ✨",
+                                color = Color(0xFFF1C40F),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF1C40F).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                            .border(BorderStroke(1.dp, Color(0xFFF1C40F).copy(alpha = 0.3f)), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Stars, contentDescription = null, tint = Color(0xFFF1C40F), modifier = Modifier.size(14.dp))
+                            Text(
+                                text = "أنت تستخدم وضع الحساب الذهبي (WPS Premium) - تصفح وتحرير ذكي مطلق بلا قيود!",
+                                color = Color(0xFFF1C40F),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
 
                 // Selector tabs based on capabilities
                 ScrollableTabRow(
